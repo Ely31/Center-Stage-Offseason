@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.Pose2d;
 
 public class AutoToTele {
     public static int allianceSide = 1;

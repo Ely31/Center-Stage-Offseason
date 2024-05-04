@@ -39,6 +39,7 @@ repositories{
     // For FastLoad
     maven {
         url = 'https://www.matthewo.tech/maven/'
+        url = 'https://maven.brott.dev/'
     }
 }
 
@@ -47,7 +48,10 @@ dependencies {
     annotationProcessor files('lib/OpModeAnnotationProcessor.jar')
     // Extra stuff
     //implementation 'com.github.Eeshwar-Krishnan:PhotonFTC:v3.0.1-ALPHA'
-    implementation 'com.acmerobotics.roadrunner:core:0.5.6'
+    implementation "com.acmerobotics.roadrunner:ftc:0.1.12"
+    implementation "com.acmerobotics.roadrunner:core:1.0.0-beta8"
+    implementation "com.acmerobotics.roadrunner:actions:1.0.0-beta8"
+    implementation "com.acmerobotics.dashboard:dashboard:0.4.14"
     implementation 'org.openftc:easyopencv:1.7.0'
 
     implementation 'org.team11260:fast-load:0.1.1'

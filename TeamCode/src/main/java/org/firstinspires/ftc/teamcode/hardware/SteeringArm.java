@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.PwmControl;
@@ -10,11 +9,9 @@ import com.qualcomm.robotcore.hardware.ServoImplEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.util.AutoToTele;
 import org.firstinspires.ftc.teamcode.util.Utility;
 
-import java.util.Arrays;
 
 @Config
 public class SteeringArm {
@@ -26,7 +23,6 @@ public class SteeringArm {
     ColorSensor bottomPixelSensor;
     ColorSensor topPixelSensor;
     ColorSensor armSensor;
-    Rev2mDistanceSensor boardSensor;
 
     boolean bottomState = false; // True is closed, false open
     boolean topState = false;
@@ -61,11 +57,7 @@ public class SteeringArm {
     double[] lastTopSensorVals = new double[3];
     boolean useRollingPixelSensors = true;
 
-    double lastBoardDistance;
     double lastArmSensorVal;
-
-    double[] lastBoardSensorVals = new double[5];
-    boolean useRollingBoardAvg = true;
 
     ElapsedTime pixelSensorsPollTimer = new ElapsedTime();
     int pixelSensorsPollInterval = 100;
@@ -81,7 +73,6 @@ public class SteeringArm {
         topPixel = hwmap.get(Servo.class, "topPixel");
         bottomPixelSensor = hwmap.get(ColorSensor.class, "bottomSensor");
         topPixelSensor = hwmap.get(ColorSensor.class, "topSensor");
-        boardSensor = hwmap.get(Rev2mDistanceSensor.class, "boardSensor");
         stopper = hwmap.get(Servo.class, "stopper");
         armSensor = hwmap.get(ColorSensor.class, "armSensor");
         steer = hwmap.get(Servo.class, "steer");
@@ -175,13 +166,6 @@ public class SteeringArm {
         return lastArmSensorVal > armSensorThreshold;
     }
 
-    public double getBoardDistance(){
-        return lastBoardDistance;
-    }
-    public double getBoardDistanceRollingAvg(){
-        return Arrays.stream(lastBoardSensorVals).average().getAsDouble();
-    }
-
     double angleToServoPos(double angle){
         // This is negative or positive 90deg depending on which alliance
         steerTargetAngle = Math.PI/2 * -AutoToTele.allianceSide;
@@ -198,35 +182,27 @@ public class SteeringArm {
         steer.setPosition(steerNeutralPos);
     }
 
-    public void updateSensors(boolean usePixelSensors, boolean useArmSensor, boolean useBoardSensor){
+    public void updateSensors(boolean usePixelSensors, boolean useArmSensor){
         if (usePixelSensors && pixelSensorsPollTimer.milliseconds() > pixelSensorsPollInterval) {
             if (useRollingPixelSensors) {
-                // Shift vals back, this is terrible code and should be done with a for loop
-                lastBottomSensorVals[2] = lastBottomSensorVals[1];
-                lastBottomSensorVals[1] = lastBottomSensorVals[0];
-                lastBottomSensorVals[0] = bottomPixelSensor.alpha();
-                // Same thing for top
-                lastTopSensorVals[2] = lastTopSensorVals[1];
-                lastTopSensorVals[1] = lastTopSensorVals[0];
-                lastTopSensorVals[0] = topPixelSensor.alpha();
+                for(int i = 4; i >= 0; i--) {
+                    if (i == 0) lastBottomSensorVals[i] = bottomPixelSensor.alpha();
+                        // Shift
+                    else lastBottomSensorVals[i] = lastBottomSensorVals[i-1];
+                }
+                for(int i = 4; i >= 0; i--) {
+                    if (i == 0) lastTopSensorVals[i] = topPixelSensor.alpha();
+                        // Shift
+                    else lastTopSensorVals[i] = lastTopSensorVals[i-1];
+                }
             }
             else {
                 lastTopSensorVals[0] = topPixelSensor.alpha();
                 lastBottomSensorVals[0] = bottomPixelSensor.alpha();
             }
-
             pixelSensorsPollTimer.reset();
         }
-        if (useBoardSensor) {
-            lastBoardDistance = boardSensor.getDistance(DistanceUnit.CM);
-        }
-        if (useRollingBoardAvg) {
-            for(int i = 4; i >= 0; i--) {
-                if (i == 0) lastBoardSensorVals[i] = lastBoardDistance;
-                // Shift
-                else lastBoardSensorVals[i] = lastBoardSensorVals[i-1];
-            }
-        }
+
         if (useArmSensor && armSensorPollTimer.milliseconds() > armSensorPollInterval) {
             lastArmSensorVal = armSensor.alpha();
             armSensorPollTimer.reset();
@@ -239,26 +215,20 @@ public class SteeringArm {
         telemetry.addData("Bottom pos", bottomPixel.getPosition());
         telemetry.addData("Top pos", topPixel.getPosition());
         telemetry.addData("Bottom gripper state", getBottomGripperState());
-        telemetry.addData("Top gripper state", getTopGripperState());
         telemetry.addData("Bottom sensor val", lastBottomSensorVals[0]);
-        telemetry.addData("Top sensor val", lastTopSensorVals[0]);
         telemetry.addLine("Bottom sensor past vals");
         for (double val : lastBottomSensorVals){
             telemetry.addData("val", val);
         }
+        telemetry.addData("Top gripper state", getTopGripperState());
+        telemetry.addData("Top sensor val", lastTopSensorVals[0]);
         telemetry.addLine("Top sensor past vals");
         for (double val : lastTopSensorVals){
-            telemetry.addData("val", val);
-        }
-        telemetry.addLine("Board sensor past vals");
-        for (double val : lastBoardSensorVals){
             telemetry.addData("val", val);
         }
         telemetry.addData("Pixel in bottom", pixelIsInBottom());
         telemetry.addData("Pixel in top", pixelIsInTop());
         telemetry.addData("Stopper state", getStopperState());
-        telemetry.addData("Board distance", getBoardDistance());
-        telemetry.addData("Rolling board distance", getBoardDistanceRollingAvg());
         telemetry.addData("Arm sensor val", lastArmSensorVal);
         telemetry.addData("Arm is down", armIsDown());
         telemetry.addData("Heading error", headingError);

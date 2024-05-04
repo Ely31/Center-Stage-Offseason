@@ -12,12 +12,12 @@ import org.firstinspires.ftc.teamcode.util.Utility;
 public class SteeringScoringMech {
     Lift lift;
     SteeringArm arm;
-    ExtendoIntakeAngleHolding intake;
+    Intake intake;
     // Constructor
     public SteeringScoringMech(HardwareMap hwmap){
         lift = new Lift(hwmap);
         arm = new SteeringArm(hwmap);
-        intake = new ExtendoIntakeAngleHolding(hwmap);
+        intake = new Intake(hwmap);
     }
 
     public void score(){
@@ -41,9 +41,9 @@ public class SteeringScoringMech {
     public void premove(){arm.preMove();}
 
     // ESSENTIAL to call this function every loop
-    public void update(boolean usePixelSensors, boolean useBoardSensor) {
+    public void update(boolean usePixelSensors) {
         lift.update();
-        arm.updateSensors(usePixelSensors, false, useBoardSensor);
+        arm.updateSensors(usePixelSensors, false);
     }
 
     public boolean hasBothPixels(){

@@ -3,8 +3,6 @@ package org.firstinspires.ftc.teamcode;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.acmerobotics.roadrunner.control.PIDCoefficients;
-import com.acmerobotics.roadrunner.control.PIDFController;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -12,7 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.drive.TeleMecDrive;
 import org.firstinspires.ftc.teamcode.hardware.Climber;
 import org.firstinspires.ftc.teamcode.hardware.DroneLauncher;
-import org.firstinspires.ftc.teamcode.hardware.ExtendoIntakeAngleHolding;
+import org.firstinspires.ftc.teamcode.hardware.Intake;
 import org.firstinspires.ftc.teamcode.hardware.Lift;
 import org.firstinspires.ftc.teamcode.hardware.SteeringArm;
 import org.firstinspires.ftc.teamcode.util.AutoToTele;
@@ -32,13 +30,10 @@ public class Teleop6 extends LinearOpMode {
     ElapsedTime pivotTimer = new ElapsedTime();
     ElapsedTime gripperTimer = new ElapsedTime();
     ElapsedTime doubleTapTimer = new ElapsedTime();
-    ExtendoIntakeAngleHolding intake;
+    Intake intake;
     DroneLauncher launcher;
     Climber climber;
     ElapsedTime climberTimer = new ElapsedTime();
-
-    PIDFController headingController;
-    public static PIDCoefficients headingCoeffs = new PIDCoefficients(2, 0.005, 0.2); // old vals (0.7,0.005,0.01)
 
     public static double liftPosEditStep = 0.45;
     boolean prevLiftInput = false;
@@ -74,10 +69,7 @@ public class Teleop6 extends LinearOpMode {
     ScoringState scoringState = ScoringState.INTAKING;
     ClimbingState climbingState = ClimbingState.REDUCE_SLACK;
 
-    int drivingState;
-    ElapsedTime drivingTimer = new ElapsedTime();
     boolean hasCalibratedFC = false;
-    double climberSlackPullTime = 1.3;
 
     @Override
     public void runOpMode(){
@@ -88,11 +80,9 @@ public class Teleop6 extends LinearOpMode {
         drive = new TeleMecDrive(hardwareMap, 0.3, false);
         lift = new Lift(hardwareMap);
         arm = new SteeringArm(hardwareMap);
-        intake = new ExtendoIntakeAngleHolding(hardwareMap);
+        intake = new Intake(hardwareMap);
         climber = new Climber(hardwareMap);
         launcher = new DroneLauncher(hardwareMap);
-
-        headingController = new PIDFController(headingCoeffs);
 
         waitForStart();
 
@@ -106,37 +96,18 @@ public class Teleop6 extends LinearOpMode {
         // START OF TELEOP LOOP
         while (opModeIsActive()){
             // DRIVING
-
-            if (false && gamepad1.right_stick_x == 0 && drivingTimer.seconds() > 0.3){
-                // Lock heading with pid controller if you aren't turning
-                drive.driveFieldCentric(
-                        gamepad1.left_stick_x,
-                        gamepad1.left_stick_y,
-                        -headingController.update(drive.getHeading()),
-                        gamepad1.right_trigger
-                    );
-                    drivingState = 2;
-            } else {
-                drivingState = 0;
-                // Drive the bot normally
-                drive.driveFieldCentric(
-                        gamepad1.left_stick_x,
-                        gamepad1.left_stick_y,
-                        gamepad1.right_stick_x * 0.8,
-                        gamepad1.right_trigger
+            // Drive the bot normally
+            drive.driveFieldCentric(
+                    gamepad1.left_stick_x,
+                    gamepad1.left_stick_y,
+                    gamepad1.right_stick_x * 0.8,
+                    gamepad1.right_trigger
                 );
-                // Reset pid controllers so they don't do weird things when they turn back on
-                resetHeadingController();
-            }
-            if (gamepad1.right_stick_x != 0){
-                drivingTimer.reset();
-            }
 
             // Manually calibrate field centric with a button
             if (gamepad1.share && !prevHeadingResetInput) {
                 drive.resetIMU();
                 drive.resetHeadingOffset();
-                resetHeadingController();
                 hasCalibratedFC = true;
             }
             prevHeadingResetInput = gamepad1.share;
@@ -146,13 +117,6 @@ public class Teleop6 extends LinearOpMode {
                 usePixelSensors = !usePixelSensors;
             }
             prevUsePixelSensorsInput = gamepad2.ps;
-
-            /* Enable/disable using the board distance sensor
-            if (!prevUseBoardSensorInput && gamepad1.ps){
-                useBoardSensor = !useBoardSensor;
-            }
-            prevUseBoardSensorInput = gamepad1.ps;
-             */
 
             // ARM AND LIFT CONTROL
             if (!isClimbing) {
@@ -241,9 +205,7 @@ public class Teleop6 extends LinearOpMode {
                 telemetry.addData("Climbing", isClimbing);
                 telemetry.addData("Climbing state", climbingState.name());
                 telemetry.addData("Heading", drive.getHeading());
-                telemetry.addData("Heading error", headingController.getLastError());
                 telemetry.addData("Funny corrected heading", (hasCalibratedFC ? drive.getHeading() : getCorrectedSteeringHeading()));
-                telemetry.addData("Driving timer", drivingTimer.seconds());
                 telemetry.addData("Scoring state", scoringState.name());
                 telemetry.addLine();
                 telemetry.addLine("SUBSYSTEMS");
@@ -274,7 +236,7 @@ public class Teleop6 extends LinearOpMode {
             case INTAKING:
                 // Update arm
                 // Only poll the sensors we need when we need them to reduce loop times
-                arm.updateSensors(true, true, false);
+                arm.updateSensors(true, true);
                 // Move the arm to the intake, duh
                 // Prevent arm hitting stuff near the intake because we swapped it for a speed
                 if (Utility.withinErrorOfValue(lift.getHeight(), 0, 2)){
@@ -354,7 +316,7 @@ public class Teleop6 extends LinearOpMode {
             case SCORING:
                 // Update arm
                 // Only poll the sensors we need when we need them to reduce loop times
-                arm.updateSensors(true, false, false);
+                arm.updateSensors(true, false);
                 // Move it up
                 arm.pivotScore();
                 lift.extend();
@@ -399,7 +361,7 @@ public class Teleop6 extends LinearOpMode {
                 break;
 
             case SLIDING_UP:
-                arm.updateSensors(true, false, false);
+                arm.updateSensors(true, false);
                 // Raise the lift up gradually to get clear of pixels
                 lift.setExtendedPos(lift.getExtendedPos() + 0.15);
                 lift.extend();
@@ -490,10 +452,6 @@ public class Teleop6 extends LinearOpMode {
         }
     }
 
-    void resetHeadingController(){
-        headingController = new PIDFController(headingCoeffs);
-        headingController.setTargetPosition(drive.getHeading());
-    }
     void resetLiftController(){
         lift.setCoefficients(Lift.coeffs);
     }

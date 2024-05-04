@@ -1,12 +1,12 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
 import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.hardware.actuators.LinearActuator;
+import org.firstinspires.ftc.teamcode.util.PIDCoefficients;
 import org.firstinspires.ftc.teamcode.util.Utility;
 
 @Config
