@@ -32,7 +32,7 @@ public class SteeringArm {
     public static double pivotScoringPos = 0.938;
     public static double pivotPremovePos = 0.25;
     public static double pivotOffset = 0.002;
-    public static double pivotAwayFromBordTime = 300;
+    public static double pivotAwayFromBordTime = 0.3;
 
     public static double steerNeutralPos = 0.47;
     public static double steerRange = 0.06;
@@ -43,7 +43,7 @@ public class SteeringArm {
     public static double gripperClosedPos = 0.88;
     public static double gripperOpenPos = 0.6;
     public static double gripperPosOffset = -0.05;
-    public static double gripperActuationTime = 250; // In milliseconds
+    public static double gripperActuationTime = 0.25;
 
     public static double stopperClosedPos = 0.13;
     public static double stopperOpenPos = 0.9;
@@ -146,7 +146,10 @@ public class SteeringArm {
         if (useRollingPixelSensors) {
             boolean answer = true;
             for (double val : lastBottomSensorVals) {
-                if (val < bottomSensorThreshold) answer = false;
+                if (val < bottomSensorThreshold) {
+                    answer = false;
+                    break;
+                }
             }
             return answer;
         }
@@ -156,7 +159,10 @@ public class SteeringArm {
         if (useRollingPixelSensors) {
             boolean answer = true;
             for (double val : lastTopSensorVals) {
-                if (val < topSensorThreshold) answer = false;
+                if (val < topSensorThreshold) {
+                    answer = false;
+                    break;
+                }
             }
             return answer;
         }

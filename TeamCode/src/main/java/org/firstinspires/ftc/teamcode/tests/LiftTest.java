@@ -16,15 +16,15 @@ public class LiftTest extends LinearOpMode {
         // Init
         telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         lift = new Lift(hardwareMap);
-        lift.setCoefficients(Lift.coeffs);
+        lift.setCoefficients(Lift.liftCoeffs);
         waitForStart();
     
         // Pre-run
-        lift.retract();
+        lift.retractLift();
         while (opModeIsActive()) {
             // TeleOp loop
-            if(gamepad1.dpad_left) lift.retract();
-            else if (gamepad1.dpad_right) lift.extend();
+            if(gamepad1.dpad_left) lift.retractLift();
+            else if (gamepad1.dpad_right) lift.extendLift();
 
             if (gamepad1.dpad_up) lift.editExtendedPos(0.1);
             if (gamepad1.dpad_down) lift.editExtendedPos(-0.1);

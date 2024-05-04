@@ -33,13 +33,13 @@ public class LinearActuator {
     DcMotorSimple.Direction currentDirection;
     DcMotor.RunMode currentMode;
 
-    public PIDCoefficients Coeffs;
+    public PIDCoefficients coeffs;
     double fCoefficient;
-    public PIDFController Controller;
+    public PIDFController controller;
     // Must call setCoefficients to use any pid features
     public void setCoefficients(PIDCoefficients coefficients) {
-        Coeffs = coefficients;
-        Controller = new PIDFController(Coeffs);
+        coeffs = coefficients;
+        controller = new PIDFController(coeffs);
     }
     public void setfCoefficient(double f){
         fCoefficient = f;
@@ -86,8 +86,8 @@ public class LinearActuator {
         currentMode = motor.getMode();
 
         if (updatePidController) {
-            Controller.setTargetPosition(targetDistance);
-            motor.setPower(Controller.update(getCurrentDistance()) + fCoefficient);
+            controller.setTargetPosition(targetDistance);
+            motor.setPower(controller.update(getCurrentDistance()) + fCoefficient);
         }
     }
     public void update(){
@@ -136,7 +136,7 @@ public class LinearActuator {
         // All the "%.3f" bits make things look a lot nicer by limiting the digits to 3 after the decimal point
         telemetry.addData("Current distance", "%.3f", getCurrentDistance());
         telemetry.addData("Target distance", "%.3f", getTargetDistance());
-        telemetry.addData("distance error","%.3f", Controller.getLastError());
+        telemetry.addData("distance error","%.3f", controller.getLastError());
         telemetry.addData("Min", minDistance);
         telemetry.addData("Max", maxDistance);
         telemetry.addData("Ticks per inch", "%.3f",TICKS_PER_INCH);

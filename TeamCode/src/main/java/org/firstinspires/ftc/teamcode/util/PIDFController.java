@@ -28,6 +28,9 @@ public final class PIDFController {
      * Target position (that is, the controller setpoint).
      */
     public double targetPosition;
+    public void setTargetPosition(double targetPosition){
+        this.targetPosition = targetPosition;
+    }
 
     /**
      * Target velocity.

@@ -121,8 +121,8 @@ public class Teleop6 extends LinearOpMode {
             // ARM AND LIFT CONTROL
             if (!isClimbing) {
                 // Reset some climber things
-                climber.setTargetPos(0);
-                climber.goToTargetPos();
+                climber.setClimberTargetPos(0);
+                climber.climberGoToTargetPos();
                 climbingState = ClimbingState.REDUCE_SLACK;
                 // Edit the extended position with the joystick on gamepad two
                 // Only works when the lift is up
@@ -140,14 +140,14 @@ public class Teleop6 extends LinearOpMode {
                 calibratingLift = ((gamepad2.dpad_left || gamepad2.dpad_right) && gamepad2.share);
                 if (calibratingLift) {
                     // Check which button it was and apply power in that direction
-                    if (gamepad2.dpad_right) {lift.setRawPowerDangerous(0.5);}
-                    else {lift.setRawPowerDangerous(-0.35);}
+                    if (gamepad2.dpad_right) {lift.setRawLiftPowerDangerous(0.5);}
+                    else {lift.setRawLiftPowerDangerous(-0.35);}
                     // Turn off all the other stuff on the lift temporarily
                     resetLiftController();
                 } else {
                     // Zero the lift just once after you move it with raw power because if you continuously zero it then it gets zero power
                     // When you try to move it with raw power
-                    if (prevCalibratingLift) lift.zero();
+                    if (prevCalibratingLift) lift.zeroLift();
                     // This method here does all of the heavy work
                     updateScoringMech();
                 }
@@ -192,7 +192,7 @@ public class Teleop6 extends LinearOpMode {
             if ((gamepad2.left_bumper && gamepad2.right_bumper) && !prevClimbingInput){
                 isClimbing = !isClimbing;
                 // Do this to prevent crashing by running to a pos before setting one
-                climber.setTargetPos(climber.getPos());
+                climber.setClimberTargetPos(climber.getClimberPos());
             }
             prevClimbingInput = gamepad2.left_bumper && gamepad2.right_bumper;
 
@@ -239,7 +239,7 @@ public class Teleop6 extends LinearOpMode {
                 arm.updateSensors(true, true);
                 // Move the arm to the intake, duh
                 // Prevent arm hitting stuff near the intake because we swapped it for a speed
-                if (Utility.withinErrorOfValue(lift.getHeight(), 0, 2)){
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), 0, 2)){
                     arm.pivotGoToIntake();
                 } else {
                     arm.preMove();
@@ -248,7 +248,7 @@ public class Teleop6 extends LinearOpMode {
                 arm.centerSteer();
                 // Wait to retract the lift until the arm is safely away from the board
                 if (pivotTimer.milliseconds() > SteeringArm.pivotAwayFromBordTime) {
-                    lift.retract();
+                    lift.retractLift();
                 }
                 // Put up the stopper so pixels don't fly out the back, but only after the arm's back to avoid hooking a pixel on it
                 if (pivotTimer.milliseconds() > 500) {
@@ -283,7 +283,7 @@ public class Teleop6 extends LinearOpMode {
                 arm.preMove();
                 arm.centerSteer();
                 // Wait to retract the lift until the arm is safely away from the board
-                if (pivotTimer.milliseconds() > SteeringArm.pivotAwayFromBordTime) lift.retract();
+                if (pivotTimer.milliseconds() > SteeringArm.pivotAwayFromBordTime) lift.retractLift();
                 // Just make sure we're still holding on
                 arm.setBothGrippersState(true);
                 arm.setStopperState(false);
@@ -319,7 +319,7 @@ public class Teleop6 extends LinearOpMode {
                 arm.updateSensors(true, false);
                 // Move it up
                 arm.pivotScore();
-                lift.extend();
+                lift.extendLift();
                 // Release the top and bottom individually if we wish
                 if (gamepad1.left_trigger > 0.5) {
                     arm.setBottomGripperState(false);
@@ -364,7 +364,7 @@ public class Teleop6 extends LinearOpMode {
                 arm.updateSensors(true, false);
                 // Raise the lift up gradually to get clear of pixels
                 lift.setExtendedPos(lift.getExtendedPos() + 0.15);
-                lift.extend();
+                lift.extendLift();
                 // Add bumper to escape as well because we've had bugs with it staying up forever
                 if ((!arm.pixelIsInTop() && !arm.pixelIsInBottom()) || gamepad2.right_bumper){
                     scoringState = ScoringState.BUMPING_UP;
@@ -374,10 +374,10 @@ public class Teleop6 extends LinearOpMode {
                 break;
 
             case BUMPING_UP:
-                lift.extend();
+                lift.extendLift();
                 // Once it's gone up enough, switch states and retract
                 // Add bumper to escape as well because we've had bugs with it staying up forever
-                if (Utility.withinErrorOfValue(lift.getHeight(), lift.getExtendedPos(), 0.5) || gamepad2.right_bumper) {
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), lift.getExtendedPos(), 0.5) || gamepad2.right_bumper) {
                     // Reset that back to normal because we temporarily changed it
                     lift.setExtendedPos(lift.getExtendedPos() - 2);
                     scoringState = ScoringState.INTAKING;
@@ -403,21 +403,21 @@ public class Teleop6 extends LinearOpMode {
                     arm.pivotGoToIntake();
                     arm.setStopperState(false);
                     // Pull in slack
-                    climber.setTargetPos(Climber.slackPullPos);
-                    climber.goToTargetPos();
+                    climber.setClimberTargetPos(Climber.slackPullPos);
+                    climber.climberGoToTargetPos();
 
-                    lift.setHeight(Climber.targetLiftHeight);
+                    lift.setLiftHeight(Climber.targetLiftHeight);
                     lift.update();
 
-                    if ((climber.getPos() - Climber.slackPullPos) < Climber.closeEnoughRange) {
-                        climber.setPower(0);
-                        climber.setTargetPos(climber.getPos());
+                    if ((climber.getClimberPos() - Climber.slackPullPos) < Climber.closeEnoughRange) {
+                        climber.setClimberPower(0);
+                        climber.setClimberTargetPos(climber.getClimberPos());
                         climbingState = ClimbingState.HOLD;
                     }
                     break;
 
                 case HOLD:
-                    climber.goToTargetPos();
+                    climber.climberGoToTargetPos();
                     lift.update();
                     // Move it with the right stick if something isn't right (normally this isn't necessary)
                     //Climber.targetLiftHeight += (Climber.targetLiftHeight + 0.2 * -gamepad2.right_stick_y);
@@ -429,31 +429,31 @@ public class Teleop6 extends LinearOpMode {
                     break;
 
                 case CLIMB:
-                    climber.setPower(-gamepad2.left_stick_y);
+                    climber.setClimberPower(-gamepad2.left_stick_y);
                     // Lift things
                     // Let it coast and be pulled up if
-                    lift.setRawPowerDangerous(0);
+                    lift.setRawLiftPowerDangerous(0);
                     resetLiftController();
                     // Update so we can get the lift's position
                     lift.update(false);
 
                     if (gamepad2.left_stick_y == 0) {
-                        Climber.targetLiftHeight = lift.getHeight();
-                        lift.setHeight(Climber.targetLiftHeight);
-                        climber.setTargetPos(climber.getPos());
+                        Climber.targetLiftHeight = lift.getLiftHeight();
+                        lift.setLiftHeight(Climber.targetLiftHeight);
+                        climber.setClimberTargetPos(climber.getClimberPos());
                         climbingState = ClimbingState.HOLD;
                     }
                     break;
             }
         }
         else{
-            lift.retract();
+            lift.retractLift();
             arm.pivotGoToIntake();
         }
     }
 
     void resetLiftController(){
-        lift.setCoefficients(Lift.coeffs);
+        lift.setCoefficients(Lift.liftCoeffs);
     }
 
     double getCorrectedSteeringHeading(){

@@ -21,19 +21,19 @@ public class SteeringScoringMech {
     }
 
     public void score(){
-        lift.extend();
+        lift.extendLift();
         arm.pivotScore();
         // More stuff to do
     }
 
     public void retract(){
-        lift.retract();
+        lift.retractLift();
         arm.pivotGoToIntake();
     }
     public void retract(double armTimerMs){
         arm.pivotGoToIntake();
         if (armTimerMs > SteeringArm.pivotAwayFromBordTime){
-            lift.retract();
+            lift.retractLift();
         }
     }
 
@@ -161,12 +161,12 @@ public class SteeringScoringMech {
                 break;
 
             case EXTENDING:
-                lift.setHeight(height);
+                lift.setLiftHeight(height);
                 arm.pivotScore();
                 arm.setStopperState(false);
                 arm.setBothGrippersState(true);
                 // Move on if the lift is all the way up
-                if (Utility.withinErrorOfValue(lift.getHeight(), height, 0.5)) {
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), height, 0.5)) {
                     scoringState = ScoringState.WAITING_FOR_ARM_PIVOT;
                 }
                 break;
@@ -194,9 +194,9 @@ public class SteeringScoringMech {
                 break;
 
             case BUMPING_UP:
-                lift.setHeight(height + 2);
+                lift.setLiftHeight(height + 2);
                 //arm.updateSteer(heading);
-                if (Utility.withinErrorOfValue(lift.getHeight(), height + 2, 0.5)) {
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), height + 2, 0.5)) {
                     scoringWait.reset();
                     scoringState = ScoringState.WAITING_FOR_ARM_RETRACT;
                 }
@@ -207,21 +207,21 @@ public class SteeringScoringMech {
                 arm.centerSteer();
                 if (scoringWait.seconds() > 0.5){
                     scoringWait.reset();
-                    lift.retract();
+                    lift.retractLift();
                     scoringState = ScoringState.RETRACTING;
                 }
                 break;
 
             case RETRACTING:
-                lift.retract();
+                lift.retractLift();
                 // Prevent arm hitting stuff near the intake because we spapped it for a speed
-                if (Utility.withinErrorOfValue(lift.getHeight(), 0, 2)){
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), 0, 2)){
                     arm.pivotGoToIntake();
                 } else {
                     arm.preMove();
                 }
                 // Move on if the lift is all the way down
-                if (Utility.withinErrorOfValue(lift.getHeight(), 0, 1)) {
+                if (Utility.withinErrorOfValue(lift.getLiftHeight(), 0, 1)) {
                     scoringState = ScoringState.DONE; // Finish
                 }
                 break;

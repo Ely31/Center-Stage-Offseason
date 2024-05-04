@@ -44,7 +44,7 @@ public class ClimberTest extends LinearOpMode {
             if ((gamepad2.left_bumper && gamepad2.right_bumper) && !prevClimbingInput){
                 isClimbing = !isClimbing;
                 // Do this to prevent crashing by running to a pos before setting one
-                climber.setTargetPos(climber.getPos());
+                climber.setClimberTargetPos(climber.getClimberPos());
                 climberTimer.reset();
             }
             prevClimbingInput = gamepad2.left_bumper && gamepad2.right_bumper;
@@ -53,19 +53,19 @@ public class ClimberTest extends LinearOpMode {
                 switch(climbingState){
                     case REDUCE_SLACK:
                         arm.setPivotPos(0.1);
-                        climber.setPower(-1);
-                        lift.setHeight(Climber.targetLiftHeight);
+                        climber.setClimberPower(-1);
+                        lift.setLiftHeight(Climber.targetLiftHeight);
                         lift.update();
 
                         if (climberTimer.seconds() > climberSlackPullTime) {
-                            climber.setPower(0);
-                            climber.setTargetPos(climber.getPos());
+                            climber.setClimberPower(0);
+                            climber.setClimberTargetPos(climber.getClimberPos());
                             climbingState = climbingState.HOLD;
                         }
                         break;
 
                     case HOLD:
-                        climber.goToTargetPos();
+                        climber.climberGoToTargetPos();
                         lift.update();
                         if(!(gamepad2.left_stick_y == 0)){
                             climbingState = climbingState.CLIMB;
@@ -73,25 +73,25 @@ public class ClimberTest extends LinearOpMode {
                         break;
 
                     case CLIMB:
-                        climber.setPower(-gamepad2.left_stick_y);
+                        climber.setClimberPower(-gamepad2.left_stick_y);
                         // Lift things
                         // Let it coast and be pulled up if
-                        lift.setRawPowerDangerous(0);
+                        lift.setRawLiftPowerDangerous(0);
                         resetLiftController();
                         // Update so we can get the lift's position
                         lift.update(false);
 
                         if(gamepad2.left_stick_y == 0){
-                            Climber.targetLiftHeight = lift.getHeight();
-                            lift.setHeight(Climber.targetLiftHeight);
-                            climber.setTargetPos(climber.getPos());
+                            Climber.targetLiftHeight = lift.getLiftHeight();
+                            lift.setLiftHeight(Climber.targetLiftHeight);
+                            climber.setClimberTargetPos(climber.getClimberPos());
                             climbingState = climbingState.HOLD;
                         }
                         break;
                 }
             }
             else{
-                lift.retract();
+                lift.retractLift();
                 arm.pivotGoToIntake();
             }
 
@@ -104,6 +104,6 @@ public class ClimberTest extends LinearOpMode {
     }
 
     void resetLiftController(){
-        lift.setCoefficients(Lift.coeffs);
+        lift.setCoefficients(Lift.liftCoeffs);
     }
 }
