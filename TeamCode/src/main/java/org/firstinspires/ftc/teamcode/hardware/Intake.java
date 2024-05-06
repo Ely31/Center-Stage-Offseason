@@ -123,13 +123,13 @@ public class Intake {
     public boolean getToggledStatus(){return intakeToggledStatus;}
 
     public void goToVertical(){
-        intakeArmServo.setPosition(verticalPos);
+        intakeArmServo.setPosition(verticalPos + servoOffset);
     }
     public void goToGround(){
-        intakeArmServo.setPosition(groundPos);
+        intakeArmServo.setPosition(groundPos + servoOffset);
     }
     public void goAboveStack(){
-        intakeArmServo.setPosition(aboveStackPos);
+        intakeArmServo.setPosition(aboveStackPos + servoOffset);
     }
     public void goToStackPosition(int position){
         stackPosition = Utility.clipValue(0, stackpositions.length-1, position);
@@ -137,7 +137,7 @@ public class Intake {
         intakeArmServo.setPosition(stackpositions[stackPosition] + servoOffset);
     }
     public void gotoRawPosition(double pos){
-        intakeArmServo.setPosition(pos);
+        intakeArmServo.setPosition(pos + servoOffset);
     }
 
     public void displayDebug(Telemetry telemetry){

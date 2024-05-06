@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.hardware;
 
+import com.acmerobotics.roadrunner.PoseVelocity2d;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -15,7 +16,6 @@ public class Robot {
     Intake intake;
     Lift lift;
     SteeringArm arm;
-    
     DroneLauncher droneLauncher;
     Camera camera;
     PropDetector pipeline;
@@ -67,8 +67,28 @@ public class Robot {
         gripperTimer.reset();
         doubleTapTimer.reset();
     }
-    
-    public void updateScoringMech(boolean progressInput, boolean backInput, boolean dropOneInput, boolean dropBothInput, boolean togglePokerInput, boolean bumpUp){
+
+    public void driveFieldCentric(PoseVelocity2d input){
+        drive.driveFieldCentric(input);
+    }
+
+    public void setDronelauncherState(boolean state){
+        if (state) droneLauncher.release();
+        else droneLauncher.hold();
+    }
+
+    public void controlIntake(boolean toggle, boolean reverse){
+        if (reverse) intake.reverse();
+        else intake.toggle(toggle);
+    }
+    public void manipulateIntakeStackHeight(boolean up, boolean down, boolean floor, boolean stack, boolean retract){
+        if (up) intake.goToStackPosition(intake.getStackPosition()+1);
+        if (down) intake.goToStackPosition(intake.getStackPosition()-1);
+        if (floor) intake.goToGround();
+        if (stack) intake.goToStackPosition(4);
+    }
+
+    public void updateScoringMech(boolean progressInput, boolean backInput, boolean dropOneInput, boolean dropBothInput, boolean togglePokerInput, int bumpStrategy){
         switch (scoringState){
             case INTAKING:
                 // Prevent arm hitting stuff near the intake because we swapped it for a speed
@@ -160,13 +180,17 @@ public class Robot {
                 if (togglePokerInput && !prevPokingInput){
                     poking = !poking;
                 }
-                prevPokingInput = togglePokerInput;
                 arm.setStopperState(poking);
                 // Wait for the arm to move a bit so the deposit doesn't hit the bot
                 if (pivotTimer.seconds() > 0.25) arm.updateSteer(hasCalibratedFC ? drive.getHeading() : getCorrectedSteeringHeading());
                 // Switch states when the bumper is pressed or both pixels are gone if autoRetract is on
                 if (!arm.getTopGripperState() && !arm.getBottomGripperState()){
                     scoringState = ScoringState.BUMPING;
+                    if (bumpStrategy == 1){
+                        // Bump up
+                        lift.setExtendedPos(lift.getExtendedPos() + 2);
+                    }
+                    gripperTimer.reset();
                 }
                 // Go back to premoved if we wish
                 if (backInput){
@@ -176,28 +200,35 @@ public class Robot {
                 break;
 
             case BUMPING:
-                arm.updateSensors(true, false);
-                // Raise the lift up gradually to get clear of pixels
-                lift.setExtendedPos(lift.getExtendedPos() + 0.15);
-                lift.extendLift();
-                // Add bumper to escape as well because we've had bugs with it staying up forever
-                if ((!arm.pixelIsInTop() && !arm.pixelIsInBottom()) || progressInput){
-                    scoringState = ScoringState.BUMPING_UP;
-                    // Bump up
-                    lift.setExtendedPos(lift.getExtendedPos() + 2);
-                }
-                // Once it's gone up enough, switch states and retract
-                // Add bumper to escape as well because we've had bugs with it staying up forever
-                if (Utility.withinErrorOfValue(lift.getLiftHeight(), lift.getExtendedPos(), 0.5) || gamepad2.right_bumper) {
-                    // Reset that back to normal because we temporarily changed it
-                    lift.setExtendedPos(lift.getExtendedPos() - 2);
-                    scoringState = ScoringState.INTAKING;
-                    // Reset timer so the clock ticks on the arm being away from the board
-                    pivotTimer.reset();
+                switch (bumpStrategy){
+                    case 0: // No bump, just wait for them to fall and then retract
+                        if (gripperTimer.seconds() > 0.5){
+                            scoringState = ScoringState.INTAKING;
+                            pivotTimer.reset();
+                        }
+                        break;
+
+                    case 1: // Just bump
+                        if (Utility.withinErrorOfValue(lift.getLiftHeight(), lift.getExtendedPos(), 0.5)) {
+                            // Reset that back to normal because we temporarily changed it
+                            lift.setExtendedPos(lift.getExtendedPos() - 2);
+                            scoringState = ScoringState.INTAKING;
+                            // Reset timer so the clock ticks on the arm being away from the board
+                            pivotTimer.reset();
+                        }
+                        break;
+
+                    default: // Slide and bump
+                        arm.updateSensors(true, false);
+                        // Raise the lift up gradually to get clear of pixels
+                        lift.setExtendedPos(lift.getExtendedPos() + 0.15);
+                        lift.extendLift();
+                        break;
                 }
                 break;
         }
         prevProgressInput = progressInput;
+        prevPokingInput = togglePokerInput;
     }
 
 
@@ -207,6 +238,7 @@ public class Robot {
 
     public void read(){
         if (scoringState == ScoringState.INTAKING) arm.updateSensors(true, true);
+        //TODO: optimize so we read just the bottom sensor while sliding
         if (scoringState == ScoringState.BUMPING) arm.updateSensors(true, false);
     }
     

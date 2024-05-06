@@ -197,11 +197,8 @@ public class Teleop6 extends LinearOpMode {
             prevClimbingInput = gamepad2.left_bumper && gamepad2.right_bumper;
 
             // TELEMETRY
-            //telemetry.addData("Using pixel sensors", usePixelSensors);
             if (displayDebugTelemetry) {
                 telemetry.addLine();
-                //telemetry.addData("Driving mode", drivingState);
-                //telemetry.addData("Target heading", headingController.getTargetPosition());
                 telemetry.addData("Climbing", isClimbing);
                 telemetry.addData("Climbing state", climbingState.name());
                 telemetry.addData("Heading", drive.getHeading());
@@ -214,9 +211,6 @@ public class Teleop6 extends LinearOpMode {
                 lift.disalayDebug(telemetry);
                 intake.displayDebug(telemetry);
                 arm.displayDebug(telemetry);
-                climber.disalayDebug(telemetry);
-                timeUtil.update(matchTimer.milliseconds());
-                timeUtil.displayDebug(telemetry, matchTimer);
             }
             telemetry.update();
         } // End of the loop
@@ -392,64 +386,6 @@ public class Teleop6 extends LinearOpMode {
         climberTimer.reset();
         // Reset the lift height that the climber will go to
         Climber.targetLiftHeight = Climber.hangingHeight;
-    }
-
-    void updateClimibingSystem(){
-        // CLIMBER CONTROL
-        // Climbing mode moves the arm out of the way, escapes all the pid stuff and just runs things with raw power
-        if(isClimbing) {
-            switch (climbingState) {
-                case REDUCE_SLACK:
-                    arm.pivotGoToIntake();
-                    arm.setStopperState(false);
-                    // Pull in slack
-                    climber.setClimberTargetPos(Climber.slackPullPos);
-                    climber.climberGoToTargetPos();
-
-                    lift.setLiftHeight(Climber.targetLiftHeight);
-                    lift.update();
-
-                    if ((climber.getClimberPos() - Climber.slackPullPos) < Climber.closeEnoughRange) {
-                        climber.setClimberPower(0);
-                        climber.setClimberTargetPos(climber.getClimberPos());
-                        climbingState = ClimbingState.HOLD;
-                    }
-                    break;
-
-                case HOLD:
-                    climber.climberGoToTargetPos();
-                    lift.update();
-                    // Move it with the right stick if something isn't right (normally this isn't necessary)
-                    //Climber.targetLiftHeight += (Climber.targetLiftHeight + 0.2 * -gamepad2.right_stick_y);
-                    //lift.setHeight(Climber.targetLiftHeight);
-
-                    if (!(gamepad2.left_stick_y == 0)) {
-                        climbingState = ClimbingState.CLIMB;
-                    }
-                    break;
-
-                case CLIMB:
-                    climber.setClimberPower(-gamepad2.left_stick_y);
-                    // Lift things
-                    // Let it coast and be pulled up if
-                    lift.setRawLiftPowerDangerous(0);
-                    resetLiftController();
-                    // Update so we can get the lift's position
-                    lift.update(false);
-
-                    if (gamepad2.left_stick_y == 0) {
-                        Climber.targetLiftHeight = lift.getLiftHeight();
-                        lift.setLiftHeight(Climber.targetLiftHeight);
-                        climber.setClimberTargetPos(climber.getClimberPos());
-                        climbingState = ClimbingState.HOLD;
-                    }
-                    break;
-            }
-        }
-        else{
-            lift.retractLift();
-            arm.pivotGoToIntake();
-        }
     }
 
     void resetLiftController(){
