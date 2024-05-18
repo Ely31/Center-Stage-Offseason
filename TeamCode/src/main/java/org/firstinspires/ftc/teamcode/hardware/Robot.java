@@ -31,6 +31,7 @@ public class Robot {
     boolean poking;
     boolean prevProgressInput;
     boolean prevPokingInput;
+    double liftPosEditStep = 0.45;
 
     enum Mode {
         MAIN,
@@ -71,6 +72,9 @@ public class Robot {
     public void driveFieldCentric(PoseVelocity2d input){
         drive.driveFieldCentric(input);
     }
+    public void calibrateFieldCentric(){
+        drive.calibrateFieldCentric();
+    }
 
     public void setDronelauncherState(boolean state){
         if (state) droneLauncher.release();
@@ -81,14 +85,15 @@ public class Robot {
         if (reverse) intake.reverse();
         else intake.toggle(toggle);
     }
-    public void manipulateIntakeStackHeight(boolean up, boolean down, boolean floor, boolean stack, boolean retract){
+    public void manipulateIntakeHeight(boolean up, boolean down, boolean floor, boolean stack, boolean retract){
         if (up) intake.goToStackPosition(intake.getStackPosition()+1);
         if (down) intake.goToStackPosition(intake.getStackPosition()-1);
         if (floor) intake.goToGround();
         if (stack) intake.goToStackPosition(4);
+        if (retract) intake.goToVertical();
     }
 
-    public void updateScoringMech(boolean progressInput, boolean backInput, boolean dropOneInput, boolean dropBothInput, boolean togglePokerInput, int bumpStrategy){
+    public void updateScoringMech(boolean progressInput, boolean backInput, boolean dropOneInput, boolean dropBothInput, double liftAdjustInput, boolean togglePokerInput, int bumpStrategy){
         switch (scoringState){
             case INTAKING:
                 // Prevent arm hitting stuff near the intake because we swapped it for a speed
@@ -168,6 +173,7 @@ public class Robot {
             case SCORING:
                 arm.pivotScore();
                 lift.extendLift();
+                lift.editExtendedPos(liftAdjustInput * liftPosEditStep);
                 if (dropOneInput) {
                     arm.setBottomGripperState(false);
                     poking = false;
@@ -182,8 +188,8 @@ public class Robot {
                 }
                 arm.setStopperState(poking);
                 // Wait for the arm to move a bit so the deposit doesn't hit the bot
-                if (pivotTimer.seconds() > 0.25) arm.updateSteer(hasCalibratedFC ? drive.getHeading() : getCorrectedSteeringHeading());
-                // Switch states when the bumper is pressed or both pixels are gone if autoRetract is on
+                if (pivotTimer.seconds() > 0.25) arm.updateSteer(getCorrectedSteeringHeading());
+                // Switch states when both grippers are open
                 if (!arm.getTopGripperState() && !arm.getBottomGripperState()){
                     scoringState = ScoringState.BUMPING;
                     if (bumpStrategy == 1){
@@ -231,6 +237,16 @@ public class Robot {
         prevPokingInput = togglePokerInput;
     }
 
+    double getCorrectedSteeringHeading(){
+        // Try to fix steering deposit calibration being wrong
+        double in = drive.imuHeading;
+        double correctedHeading = Math.acos(Math.cos(in));
+        if (Math.sin(in) < 0){
+            return -correctedHeading;
+        } else {
+            return correctedHeading;
+        }
+    }
 
     public void write(){
 

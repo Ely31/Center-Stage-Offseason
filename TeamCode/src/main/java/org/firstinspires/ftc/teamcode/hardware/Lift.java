@@ -36,6 +36,7 @@ public class Lift {
     ClimbingState climbingState = ClimbingState.REDUCE_SLACK;
 
     public Lift(HardwareMap hwmap){
+        liftMotor = hwmap.get(DcMotorEx.class, "lift");
         liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         zeroLift();
         extendedPos = 7;

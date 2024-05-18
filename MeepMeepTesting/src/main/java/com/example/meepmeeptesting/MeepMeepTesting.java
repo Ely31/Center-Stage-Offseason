@@ -1,6 +1,6 @@
 package com.example.meepmeeptesting;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.Pose2d;
 import com.noahbres.meepmeep.MeepMeep;
 import com.noahbres.meepmeep.roadrunner.DefaultBotBuilder;
 import com.noahbres.meepmeep.roadrunner.entity.RoadRunnerBotEntity;
@@ -20,16 +20,13 @@ public class MeepMeepTesting {
                 .setDimensions(15,15)
                 // Set bot constraints: maxVel, maxAccel, maxAngVel, maxAngAccel, track width
                 .setConstraints(55, 40, Math.toRadians(180), Math.toRadians(180), 14)
-                .followTrajectorySequence(h ->
-                        h.trajectorySequenceBuilder(new Pose2d(11.75, -61.5 * alliance, Math.toRadians(90 * alliance)))
-                                // Purple
-                                .lineToSplineHeading(new Pose2d(28.50, -31.80*alliance, Math.toRadians(180*alliance)))
-                                // Yellow
-                                .setTangent(Math.toRadians(0*alliance))
-                                .splineToSplineHeading(new Pose2d(46.48, -35.99*alliance, Math.toRadians(0*alliance)), Math.toRadians(0*alliance))
-                                //.splineTo(new Vector2d(yellowPixelXCoord, yellowPixelYCoord*alliance), Math.toRadians(0*alliance))
-                                .build()
-                );
+                .build();
+
+        myBot.runAction(myBot.getDrive().actionBuilder(new Pose2d(11.75, -61.5 * alliance, Math.toRadians(90 * alliance)))
+                // Purple
+                .setTangent(Math.toRadians(0*alliance))
+                .splineToSplineHeading(new Pose2d(46.48, -35.99*alliance, Math.toRadians(0*alliance)), Math.toRadians(0*alliance))
+                .build());
 
         meepMeep.setBackground(MeepMeep.Background.FIELD_CENTERSTAGE_JUICE_DARK)
                 .setDarkMode(true)

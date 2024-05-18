@@ -37,6 +37,7 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
@@ -109,6 +110,7 @@ public final class MecanumDrive {
     public final VoltageSensor voltageSensor;
 
     public final LazyImu lazyImu;
+    public double imuHeading;
 
     public final Localizer localizer;
     public Pose2d pose;
@@ -131,10 +133,10 @@ public final class MecanumDrive {
 
         // TODO: make sure your config has motors with these names (or change them)
         //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
-        leftFront = hardwareMap.get(DcMotorEx.class, "leftFront");
-        leftBack = hardwareMap.get(DcMotorEx.class, "leftBack");
-        rightBack = hardwareMap.get(DcMotorEx.class, "rightBack");
-        rightFront = hardwareMap.get(DcMotorEx.class, "rightFront");
+        leftFront = hardwareMap.get(DcMotorEx.class, "lf");
+        leftBack = hardwareMap.get(DcMotorEx.class, "lb");
+        rightBack = hardwareMap.get(DcMotorEx.class, "rb");
+        rightFront = hardwareMap.get(DcMotorEx.class, "rf");
 
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -142,10 +144,9 @@ public final class MecanumDrive {
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // TODO: reverse motor directions if needed
-        //   leftFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightBack.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        // TODO: make sure your config has an IMU with this name (can be BNO or BHI)
-        //   see https://ftc-docs.firstinspires.org/en/latest/hardware_and_software_configuration/configuring/index.html
         lazyImu = new LazyImu(hardwareMap, "imu", new RevHubOrientationOnRobot(
                 PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
 
@@ -171,10 +172,17 @@ public final class MecanumDrive {
         rightFront.setPower(wheelVels.rightFront.get(0) / maxPowerMag);
     }
     public void driveFieldCentric(PoseVelocity2d input){
-        double heading = lazyImu.get().getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS); // My gosh that's a lot to type just to get the heading
+        imuHeading = lazyImu.get().getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS); // My gosh that's a lot to type just to get the heading
         double steer = input.component2();
-        Vector2d translate = input.component1().
-        setDrivePowers(new PoseVelocity2d(, steer));
+        // Ryan Brott why the heck did you get rid of Pose2d.rotated(), this would've been so much easier
+        double x = input.component1().x;
+        double y = input.component1().y;
+        x = x * Math.cos(-imuHeading) - y * Math.sin(-imuHeading);
+        y = x * Math.sin(-imuHeading) + y * Math.cos(-imuHeading);
+        setDrivePowers(new PoseVelocity2d(new Vector2d(x,y), steer));
+    }
+    public void calibrateFieldCentric(){
+        lazyImu.get().resetYaw();
     }
 
     public final class FollowTrajectoryAction implements Action {

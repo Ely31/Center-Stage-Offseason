@@ -25,26 +25,39 @@ public class Teleop extends LinearOpMode {
 
         waitForStart();
         bot.resetTimers();
-
-        while(opModeIsActive() && isStopRequested()){
+        // Begin TeleOp loop
+        while(opModeIsActive() && !isStopRequested()){
             // Bulk reads
             for (LynxModule hub : allHubs) {
                 hub.clearBulkCache();
             }
 
             bot.driveFieldCentric(new PoseVelocity2d(new Vector2d(gamepad1.left_stick_x, -gamepad1.left_stick_y), gamepad1.right_stick_x));
-            bot.setDronelauncherState(gamepad1.touchpad);
+            if (gamepad1.share) bot.calibrateFieldCentric();
+            /*
             bot.controlIntake(gamepad1.left_stick_button, gamepad1.right_stick_button);
-            bot.manipulateIntakeStackHeight();
+            bot.manipulateIntakeHeight(
+                    gamepad1.dpad_up,
+                    gamepad1.dpad_down,
+                    gamepad1.a,
+                    gamepad1.y,
+                    false
+            );
+
             bot.updateScoringMech(
                     gamepad1.right_bumper,
                     gamepad1.dpad_left,
                     gamepad1.left_trigger > 0.5,
                     gamepad1.left_bumper,
+                    -gamepad1.right_stick_y,
                     gamepad1.b,
                     2
             );
 
+            bot.setDronelauncherState(gamepad1.touchpad);
+
+
+             */
             bot.displayDebug(telemetry);
             telemetry.update();
         }
